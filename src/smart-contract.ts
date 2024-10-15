@@ -1,7 +1,7 @@
-import type { Beacon, BeaconState } from './interfaces';
+import type { Beacon, BeaconState } from './utils/interfaces';
 import { Reclaim__factory as ReclaimFactory } from './contract-types';
 import CONTRACTS_CONFIG from './contract-types/config.json';
-import "@ethersproject/shims"
+import '@ethersproject/shims';
 import { Contract, ethers } from 'ethers';
 
 const DEFAULT_CHAIN_ID = 11155420;
@@ -68,7 +68,9 @@ function getContract(chainId: number): Contract {
       throw new Error(`Unsupported chain: "${chainKey}"`);
     }
 
-    const rpcProvider = new ethers.providers.JsonRpcProvider(contractData.rpcUrl);
+    const rpcProvider = new ethers.providers.JsonRpcProvider(
+      contractData.rpcUrl
+    );
     existingContractsMap[chainKey] = ReclaimFactory.connect(
       contractData.address,
       rpcProvider

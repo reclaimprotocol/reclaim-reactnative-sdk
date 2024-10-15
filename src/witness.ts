@@ -1,7 +1,7 @@
-import "@ethersproject/shims"
+import '@ethersproject/shims';
 import { ethers } from 'ethers';
-import type { WitnessData } from './interfaces';
-import type { ClaimID, ClaimInfo, CompleteClaimData } from './types';
+import type { WitnessData } from './utils/interfaces';
+import type { ClaimID, ClaimInfo, CompleteClaimData } from './utils/types';
 
 type BeaconState = {
   witnesses: WitnessData[];
@@ -23,7 +23,9 @@ export function fetchWitnessListForClaim(
     witnessesRequiredForClaim.toString(),
     timestampS.toString(),
   ].join('\n');
-  const completeHashStr = ethers.utils.keccak256(strToUint8Array(completeInput));
+  const completeHashStr = ethers.utils.keccak256(
+    strToUint8Array(completeInput)
+  );
   const completeHash = ethers.utils.arrayify(completeHashStr);
   const completeHashView = uint8ArrayToDataView(completeHash);
   const witnessesLeft = [...witnesses];
