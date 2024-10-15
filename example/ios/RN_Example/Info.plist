@@ -52,7 +52,7 @@
 			<dict>
 				<key>CFBundleURLSchemes</key>
 				<array>
-					<string>mychat</string>
+					<string>reclaimexample</string>
 				</array>
 			</dict>
 		</array>

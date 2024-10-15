@@ -1,3 +1,3 @@
 import 'text-encoding-polyfill';
 export * from './Reclaim';
-export * from './interfaces';
+export * from './utils/interfaces';

@@ -1,6 +1,6 @@
 {
   "name": "@reclaimprotocol/reactnative-sdk",
-  "version": "1.1.6",
+  "version": "2.0.0",
   "description": "Designed to request proofs from the Reclaim protocol and manage the flow of claims.",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",
@@ -43,14 +43,15 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/reclaimprotocol/reclaim-reactnative-sdk"
+    "url": "git@gitlab.reclaimprotocol.org:reclaim-developer-experience/reclaim-sdk.git",
+    "directory": "packages/reactnative"
   },
-  "author": "ali <ali@creatoros.co>",
-  "license": "See License in <https://github.com/reclaimprotocol/.github/blob/main/LICENSE>",
+  "author": "ali <ali@creatoros.co> (https://gitlab.reclaimprotocol.org/ali)",
+  "license": "MIT",
   "bugs": {
-    "url": "https://github.com/reclaimprotocol/reclaim-reactnative-sdk/issues"
+    "url": "https://gitlab.reclaimprotocol.org/reclaim-developer-experience/reclaim-sdk/-/issues"
   },
-  "homepage": "https://github.com/reclaimprotocol/reclaim-reactnative-sdk",
+  "homepage": "https://gitlab.reclaimprotocol.org/reclaim-developer-experience/reclaim-sdk/-/blob/main/packages/reactnative/README.md?ref_type=heads",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"

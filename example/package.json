@@ -10,9 +10,9 @@
     "test": "jest"
   },
   "dependencies": {
-    "@reclaimprotocol/reactnative-sdk": "^1.1.0",
     "react": "18.2.0",
-    "react-native": "0.74.0"
+    "react-native": "0.74.0",
+    "@reclaimprotocol/reactnative-sdk": "file:../lib/module"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

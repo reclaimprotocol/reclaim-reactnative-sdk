@@ -1,194 +1,296 @@
-# Reclaim reactnative-sdk
+<div>
+    <div>
+        <img src="https://raw.githubusercontent.com/reclaimprotocol/.github/main/assets/banners/JS-SDK.png"  />
+    </div>
+</div>
 
-This README provides a step-by-step guide on integrating the Reclaim Protocol React native SDK into application
+# Reclaim Protocol React Native SDK Integration Guide
 
-## Pre-requisites
+This guide will walk you through integrating the Reclaim Protocol React Native SDK into your application. We'll create a simple React Native application that demonstrates how to use the SDK to generate proofs and verify claims.
 
-- An application ID from Reclaim Protocol. You can get one from the [Reclaim Developer Protocol](https://dev.reclaimprotocol.org/)
+## Prerequisites
 
-## Create a new React application
+Before we begin, make sure you have:
+
+1. An application ID from Reclaim Protocol.
+2. An application secret from Reclaim Protocol.
+3. A provider ID for the specific service you want to verify.
+
+You can obtain these details from the [Reclaim Developer Portal](https://dev.reclaimprotocol.org/).
+
+## Step 1: Create a new React Native application
+
+Let's start by creating a new React Native application:
 
 ```bash
 npx react-native init ReclaimApp
 cd ReclaimApp
 ```
 
-## Install the Reclaim Protocol JS-SDK
+## Step 2: Install necessary dependencies
+
+Install the Reclaim Protocol React Native SDK:
 
 ```bash
 npm install @reclaimprotocol/reactnative-sdk
 ```
 
-## Import dependencies
+## Step 3: Set up your React Native component
 
-In your `src/App.js` file, import the Reclaim SDK and the QR code generator
+Replace the contents of `App.tsx` with the following code:
 
-```javascript
-import { useState, useEffect } from 'react'
-import { Reclaim } from '@reclaimprotocol/reactnative-sdk'
-```
+```typescript
+import * as React from 'react';
+import {useEffect, useState} from 'react';
+import {View, Text, Button, StyleSheet, Linking, TouchableOpacity, ScrollView} from 'react-native'; 
+import {ReclaimProofRequest} from '@reclaimprotocol/reactnative-sdk';
+import type { Proof } from '@reclaimprotocol/reactnative-sdk';
 
-## Initialize the Reclaim SDK
+// Define your app's deep link scheme
+const APP_SCHEME = 'reclaimexample://';
 
-Declare your `application ID` and initialize the Reclaim Protocol client. Replace `YOUR_APPLICATION_ID_HERE` with the actual application ID provided by Reclaim Protocol.
+export default function App() {
+  const [status, setStatus] = useState<string>('');
+  const [extracted, setExtracted] = useState<string | null>(null);
+  const [proofObject, setProofObject] = useState<string | null>(null);
+  const [reclaimProofRequest, setReclaimProofRequest] = useState<ReclaimProofRequest | null>(null);
+  const [requestUrl, setRequestUrl] = useState<string | null>(null);
 
-File: `src/App.js`
+  useEffect(() => {
+    initializeReclaimProofRequest();
+    setupDeepLinking();
+  }, []);
 
-```js copy
-import { Reclaim } from '@reclaimprotocol/reactnative-sdk'
-import { SafeAreaView, Text, View } from 'react-native'
+  // Set up deep linking to handle redirects back to the app
+  function setupDeepLinking() {
+    Linking.addEventListener('url', handleDeepLink);
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink({url});
+      }
+    });
 
-function App() {
-  const APP_ID = 'YOUR_APPLICATION_ID_HERE'
-  const reclaimProofRequest = new Reclaim.ProofRequest(APP_ID)
+    return () => {
+      Linking.removeAllListeners('url');
+    };
+  }
 
-  return (
-    <SafeAreaView>
-      <View>
-        <Text>App</Text>
-      </View>
-    </SafeAreaView>
-  )
-}
+  // Handle incoming deep links
+  function handleDeepLink(event: {url: string}) {
+    console.log('Deep link received:', event.url);
+    // You can add logic here to handle the deep link
+  }
 
-export default App
-```
+  // Initialize the ReclaimProofRequest
+  async function initializeReclaimProofRequest() {
+    try {
+      const proofRequest = await ReclaimProofRequest.init(
+        'YOUR_APP_ID',
+        'YOUR_APP_SECRET',
+        'YOUR_PROVIDER_ID'
+      );
+      setReclaimProofRequest(proofRequest);
 
-### Add your app deep link
+      proofRequest.addContext('0x00000000000', 'Example context message');
+      proofRequest.setRedirectUrl(`${APP_SCHEME}proof`);
 
-You'll need to add a deep link to your app. This will be used to redirect the user back to your app after they have completed the verification process.
+      console.log('Proof request initialized:', proofRequest.toJsonString());
+    } catch (error) {
+      console.error('Error initializing ReclaimProofRequest:', error);
+    }
+  }
 
-- Guide to setup deep link on react-native can be found [here](https://reactnavigation.org/docs/deep-linking/).
+  // Start the Reclaim verification session
+  async function startReclaimSession() {
+    if (!reclaimProofRequest) {
+      console.error('ReclaimProofRequest not initialized');
+      return;
+    }
 
-```js copy showLineNumbers {11-12}
-import { SafeAreaView, Text, View } from 'react-native'
-import { ReclaimClient } from '@reclaimprotocol/reactnative-sdk'
+    try {
+      setStatus('Starting Reclaim session...');
 
-function App() {
-  const APP_ID = 'YOUR_APPLICATION_ID_HERE'
-  const reclaimProofRequest = new Reclaim.ProofRequest(APP_ID)
+      const url = await reclaimProofRequest.getRequestUrl();
+      setRequestUrl(url);
+      
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+        setStatus('Session started. Waiting for proof...');
+      } else {
+        setStatus('Unable to open URL automatically. Please copy and open the URL manually.');
+      }
 
-  async function startVerificationFlow() {
-    // id of the provider you want to generate the proof for
-    await reclaimProofRequest.buildProofRequest('PROVIDER_ID')
+      const statusUrl = reclaimProofRequest.getStatusUrl();
+      console.log('Status URL:', statusUrl);
 
-    const appDeepLink = 'YOUR_APP_DEEP_LINK_HERE' //TODO: replace with your app deep link
-    reclaimProofRequest.setAppCallbackUrl(appDeepLink)
+      await reclaimProofRequest.startSession({
+        onSuccess: async (proof: Proof) => {
+          console.log('Proof received:', proof);
+          setStatus('Proof received!');
+          setExtracted(JSON.stringify(proof.claimData.context));
+          setProofObject(JSON.stringify(proof, null, 2));
+        },
+        onError: (error: Error) => {
+          console.error('Error in proof generation:', error);
+          setStatus(`Error in proof generation: ${error.message}`);
+        },
+      });
+    } catch (error) {
+      console.error('Error starting Reclaim session:', error);
+      setStatus(`Error starting Reclaim session`);
+    }
   }
 
   return (
-    <SafeAreaView>
-      <View>
-        <Text>App</Text>
-      </View>
-    </SafeAreaView>
-  )
+    <View style={styles.container}>
+      <Text style={styles.title}>React Native Reclaim Demo</Text>
+      <Button onPress={startReclaimSession} title="Start Reclaim Session" />
+      <Text style={styles.status}>{status}</Text>
+      {requestUrl && (
+        <Text style={styles.url}>Request URL: {requestUrl}</Text>
+      )}
+      {proofObject && (
+        <View style={styles.proofContainer}>
+          <Text style={styles.subtitle}>Proof Data:</Text>
+          <Text>{proofObject}</Text>
+        </View>
+      )}
+    </View>
+  );
 }
 
-export default App
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  status: {
+    marginVertical: 10,
+  },
+  url: {
+    marginVertical: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 20,
+  },
+  proofContainer: {
+    marginTop: 20,
+  },
+});
 ```
 
-## Implement Verification Request Function
+## Step 4: Understanding the code
 
-Create functions to handle the verification request. You'll need separate functions for prototype and production modes due to the different handling of the application secret and signature.
+Let's break down what's happening in this code:
 
-### Prototype Mode
+1. We initialize the Reclaim SDK with your application ID, secret, and provider ID. This happens once when the component mounts.
 
-For testing purposes, use the prototype mode. Note that in production, you should handle the application secret securely on your server.
+2. We set up deep linking to handle redirects back to the app after the verification process.
 
-File: `src/App.js`
+3. When the user presses the "Start Reclaim Session" button, we:
+   - Generate a request URL using `getRequestUrl()`.
+   - Attempt to open the URL, which starts the verification process.
+   - Get the status URL using `getStatusUrl()`. This URL can be used to check the status of the claim process.
+   - Start a session with `startSession()`, which sets up callbacks for successful and failed verifications.
 
-```javascript
-import { Reclaim } from '@reclaimprotocol/reactnative-sdk'
-import { SafeAreaView, Text, View, Pressable } from 'react-native'
+4. We display the request URL, which can be opened manually if automatic opening fails.
 
-function App() {
-  const APP_ID = 'YOUR_APPLICATION_ID_HERE'
+5. When the verification is successful, we display the extracted data and the full proof object on the screen.
 
-  const reclaimProofRequest = new Reclaim.ProofRequest(APP_ID)
+## Step 5: Run your application
 
-  async function startVerificationFlow() {
-    // id of the provider you want to generate the proof for
-    await reclaimProofRequest.buildProofRequest('PROVIDER_ID')
+Start your development server:
 
-    const appDeepLink = 'YOUR_APP_DEEP_LINK_HERE' //TODO: replace with your app deep link
-    reclaimProofRequest.setAppCallbackUrl(appDeepLink)
-
-    reclaimProofRequest.setSignature(
-      await reclaimProofRequest.generateSignature(
-        'YOUR_APPLICATION_SECRET' // Handle securely for production
-      )
-    )
-
-    const { requestUrl, statusUrl } =
-      await reclaimProofRequest.createVerificationRequest()
-
-    await reclaimProofRequest.startSession({
-      onSuccessCallback: proof => {
-        console.log('Verification success', proof)
-        // Your business logic here
-      },
-      onFailureCallback: error => {
-        console.error('Verification failed', error)
-        // Your business logic here to handle the error
-      },
-    })
-  }
-
-  return (
-    <SafeAreaView>
-      <View>
-        <Pressable onPress={startVerificationFlow}>
-          <Text>Start Verification Flow</Text>
-        </Pressable>
-      </View>
-    </SafeAreaView>
-  )
-}
-
-export default App
+```bash
+npx react-native run-android
+# or
+npx react-native run-ios
 ```
 
-### Production Mode
+Your Reclaim SDK demo should now be running. Press the "Start Reclaim Session" button to begin the verification process.
 
-In production mode, securely fetch and set the signature from your backend instead of using the application secret directly in the client.
+## Understanding the Claim Process
 
-Similar to the prototype mode but ensure to fetch and set the signature securely
+1. **Creating a Claim**: When you press "Start Reclaim Session", the SDK generates a unique request for verification.
 
-```javascript
-async function createVerificationRequestProductionMode() {
-  // id of the provider you want to generate the proof for
-  await reclaimProofRequest.buildProofRequest('PROVIDER_ID')
+2. **Request URL**: The request URL is displayed and can be opened to start the verification process.
 
-  const appDeepLink = 'YOUR_APP_DEEP_LINK_HERE' //TODO: replace with your app deep link
-  reclaimProofRequest.setAppCallbackUrl(appDeepLink)
+3. **Status URL**: This URL (logged to the console) can be used to check the status of the claim process.
 
-  reclaim
-    .setSignature
-    // TODO: fetch signature from your backend
-    // On the backend, generate signature using:
-    // await Reclaim.getSignature(requestedProofs, APP_SECRET)
-    ()
+4. **Verification**: The `onSuccess` callback is called when verification is successful, providing the proof data.
 
-  const { requestUrl, statusUrl } =
-    await reclaimProofRequest.createVerificationRequest()
+5. **Handling Failures**: The `onError` callback is called if verification fails, allowing you to handle errors gracefully.
 
-  await reclaimProofRequest.startSession({
-    onSuccessCallback: proof => {
-      console.log('Verification success', proof)
-      // Your business logic here
-    },
-    onFailureCallback: error => {
-      console.error('Verification failed', error)
-      // Your business logic here to handle the error
-    },
-  })
-}
-```
+## Advanced Configuration
+
+The Reclaim SDK offers several advanced options to customize your integration:
+
+1. **Adding Context**:
+   You can add context to your proof request, which can be useful for providing additional information:
+   ```typescript
+   reclaimProofRequest.addContext('0x00000000000', 'Example context message');
+   ```
+
+2. **Setting Parameters**:
+   If your provider requires specific parameters, you can set them like this:
+   ```typescript
+   reclaimProofRequest.setParams({ email: "test@example.com", userName: "testUser" });
+   ```
+
+3. **Custom Redirect URL**:
+   Set a custom URL to redirect users after the verification process. You can even redirect the user back to your app by setting up the deep link scheme and adding it as the redirect URL:
+   ```typescript
+   reclaimProofRequest.setRedirectUrl(`${APP_SCHEME}proof`);
+   ```
+
+4. **Custom Callback URL**:
+   Set a custom URL to receive proof status updates:
+   ```typescript
+   reclaimProofRequest.setAppCallbackUrl('https://example.com/callback');
+   ```
+
+5. **Exporting and Importing SDK Configuration**:
+   You can export the entire Reclaim SDK configuration as a JSON string and use it to initialize the SDK with the same configuration on a different service or backend:
+   ```typescript
+   // On the client-side or initial service
+   const configJson = reclaimProofRequest.toJsonString()
+   console.log('Exportable config:', configJson)
+   
+   // Send this configJson to your backend or another service
+   
+   // On the backend or different service
+   const importedRequest = ReclaimProofRequest.fromJsonString(configJson)
+   const requestUrl = await importedRequest.getRequestUrl()
+   ```
+   This allows you to generate request URLs and other details from your backend or a different service while maintaining the same configuration.
+
+## Handling Proofs on Your Backend
+
+For production applications, it's recommended to handle proofs on your backend. You can set up a callback URL to receive proofs and status updates.
+
+## Next Steps
+
+Explore the [Reclaim Protocol documentation](https://docs.reclaimprotocol.org/) for more advanced features and best practices for integrating the SDK into your production applications.
+
+Happy coding with Reclaim Protocol!
 
 ## Contributing to Our Project
 
-We're excited that you're interested in contributing to our project! Before you get started, please take a moment to review the following guidelines.
+We welcome contributions to our project! If you find any issues or have suggestions for improvements, please open an issue or submit a pull request.
+
+## Security Note
+
+Always keep your Application Secret secure. Never expose it in client-side code or public repositories.
 
 ## Code of Conduct
 
