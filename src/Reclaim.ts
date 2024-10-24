@@ -28,6 +28,7 @@ import {
   NoProviderParamsError,
   ProofNotFoundError,
   ProofNotVerifiedError,
+  ProofSubmissionFailedError,
   ProviderFailedError,
   SessionNotStartedError,
   SetParamsError,
@@ -56,6 +57,7 @@ import {
 } from './utils/proofUtils';
 import loggerModule from './utils/logger';
 const logger = loggerModule.logger;
+const sdkVersionNumber = require('../package.json').version;
 
 export async function verifyProof(proof: Proof): Promise<boolean> {
   if (!proof.signatures.length) {
@@ -147,6 +149,7 @@ export class ReclaimProofRequest {
   private redirectUrl?: string;
   private intervals: Map<string, NodeJS.Timer> = new Map();
   private timeStamp: string;
+  private sdkVersion: string;
 
   // Private constructor
   private constructor(
@@ -167,6 +170,7 @@ export class ReclaimProofRequest {
     logger.info(
       `Initializing client with applicationId: ${this.applicationId}`
     );
+    this.sdkVersion = 'rn-' + sdkVersionNumber;
   }
 
   // Static initialization methods
@@ -251,6 +255,7 @@ export class ReclaimProofRequest {
         timeStamp,
         appCallbackUrl,
         options,
+        sdkVersion,
       }: ProofPropertiesJSON = JSON.parse(jsonString);
 
       validateFunctionParams(
@@ -260,6 +265,7 @@ export class ReclaimProofRequest {
           { input: signature, paramName: 'signature', isString: true },
           { input: sessionId, paramName: 'sessionId', isString: true },
           { input: timeStamp, paramName: 'timeStamp', isString: true },
+          { input: sdkVersion, paramName: 'sdkVersion', isString: true },
         ],
         'fromJsonString'
       );
@@ -290,6 +296,7 @@ export class ReclaimProofRequest {
       proofRequestInstance.redirectUrl = redirectUrl;
       proofRequestInstance.timeStamp = timeStamp;
       proofRequestInstance.signature = signature;
+      proofRequestInstance.sdkVersion = sdkVersion;
 
       return proofRequestInstance;
     } catch (error) {
@@ -503,6 +510,7 @@ export class ReclaimProofRequest {
       redirectUrl: this.redirectUrl,
       timeStamp: this.timeStamp,
       options: this.options,
+      sdkVersion: this.sdkVersion,
     });
   }
 
@@ -532,6 +540,7 @@ export class ReclaimProofRequest {
         parameters: getFilledParameters(requestedProof),
         redirectUrl: this.redirectUrl ?? '',
         acceptAiProviders: this.options?.acceptAiProviders ?? false,
+        sdkVersion: this.sdkVersion,
       };
 
       const link = await createLinkWithTemplateData(templateData);
@@ -550,7 +559,7 @@ export class ReclaimProofRequest {
   }: StartSessionParams): Promise<void> {
     if (!this.sessionId) {
       const message =
-        "Session can't be started due to undefined value of statusUrl and sessionId";
+        "Session can't be started due to undefined value of sessionId";
       logger.info(message);
       throw new SessionNotStartedError(message);
     }
@@ -564,28 +573,51 @@ export class ReclaimProofRequest {
         if (
           statusUrlResponse.session.statusV2 ===
           SessionStatus.PROOF_GENERATION_FAILED
-        )
+        ) {
           throw new ProviderFailedError();
-        if (
-          !statusUrlResponse.session.proofs ||
-          statusUrlResponse.session.proofs.length === 0
-        )
-          return;
-        const proof = statusUrlResponse.session.proofs[0];
-        if (proof) {
-          const verified = await verifyProof(proof);
-          if (!verified) {
-            logger.info(`Proof not verified: ${JSON.stringify(proof)}`);
-            throw new ProofNotVerifiedError();
+        }
+
+        const isDefaultCallbackUrl =
+          this.getAppCallbackUrl() ===
+          `${constants.DEFAULT_RECLAIM_CALLBACK_URL}${this.sessionId}`;
+
+        if (isDefaultCallbackUrl) {
+          if (
+            statusUrlResponse.session.proofs &&
+            statusUrlResponse.session.proofs.length > 0
+          ) {
+            if (!statusUrlResponse.session.proofs[0]) {
+              throw new ProofNotFoundError();
+            }
+            const proof = statusUrlResponse.session.proofs[0];
+            const verified = await verifyProof(proof);
+            if (!verified) {
+              logger.info(`Proof not verified: ${JSON.stringify(proof)}`);
+              throw new ProofNotVerifiedError();
+            }
+            if (onSuccess) {
+              onSuccess(proof);
+            }
+            this.clearInterval();
           }
         } else {
-          logger.info('No proof found in session');
-          throw new ProofNotFoundError();
+          if (
+            statusUrlResponse.session.statusV2 ===
+            SessionStatus.PROOF_SUBMISSION_FAILED
+          ) {
+            throw new ProofSubmissionFailedError();
+          }
+          if (
+            statusUrlResponse.session.statusV2 === SessionStatus.PROOF_SUBMITTED
+          ) {
+            if (onSuccess) {
+              onSuccess(
+                'Proof submitted successfully to the custom callback url'
+              );
+            }
+            this.clearInterval();
+          }
         }
-        if (onSuccess) {
-          onSuccess(proof);
-        }
-        this.clearInterval();
       } catch (e) {
         if (onError) {
           onError(e as Error);

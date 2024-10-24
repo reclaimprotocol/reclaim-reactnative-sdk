@@ -45,3 +45,6 @@ export const GetAppCallbackUrlError = createErrorClass(
 export const GetRequestUrlError = createErrorClass('GetRequestUrlError');
 export const StatusUrlError = createErrorClass('StatusUrlError');
 export const ProofNotFoundError = createErrorClass('ProofNotFoundError');
+export const ProofSubmissionFailedError = createErrorClass(
+  'ProofSubmissionFailedError'
+);
