@@ -160,11 +160,20 @@ export default function App() {
 
       // Start the verification session
       await reclaimProofRequest.startSession({
-        onSuccess: async (proof: Proof) => {
-          console.log('Proof received:', proof);
-          setStatus('Proof received!');
-          setExtracted(JSON.stringify(proof.claimData.context));
-          setProofObject(JSON.stringify(proof, null, 2)); // Format the proof object
+        onSuccess: async (proof: Proof | string | undefined) => {
+          if (proof){
+            if (typeof proof === 'string') {
+              // When using a custom callback url, the proof is returned to the callback url and we get a message instead of a proof
+              console.log('SDK Message:', proof)
+              setExtracted(proof)
+            } else if (typeof proof !== 'string') {  
+              console.log('Proof received:', proof);
+              setExtracted(JSON.stringify(proof.claimData.context));
+            }
+            setStatus('Proof received!');
+            setProofObject(JSON.stringify(proof, null, 2)); // Format the proof object
+          }
+
         },
         onError: (error: Error) => {
           console.error('Error in proof generation:', error);
