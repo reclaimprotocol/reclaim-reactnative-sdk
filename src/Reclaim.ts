@@ -56,6 +56,7 @@ import {
   getWitnessesForClaim,
 } from './utils/proofUtils';
 import loggerModule from './utils/logger';
+import { Platform } from 'react-native';
 const logger = loggerModule.logger;
 const sdkVersionNumber = require('../package.json').version;
 
@@ -192,7 +193,7 @@ export class ReclaimProofRequest {
 
       // check if options is provided and validate each property of options
       if (options) {
-        if (options.acceptAiProviders) {
+        if (options.acceptAiProviders !== undefined) {
           validateFunctionParams(
             [
               {
@@ -203,9 +204,15 @@ export class ReclaimProofRequest {
             'the constructor'
           );
         }
-        if (options.log) {
+        if (options.log !== undefined) {
           validateFunctionParams(
             [{ paramName: 'log', input: options.log }],
+            'the constructor'
+          );
+        }
+        if (options.useAppClip !== undefined) {
+          validateFunctionParams(
+            [{ paramName: 'useAppClip', input: options.useAppClip }],
             'the constructor'
           );
         }
@@ -543,10 +550,28 @@ export class ReclaimProofRequest {
         sdkVersion: this.sdkVersion,
       };
 
-      const link = await createLinkWithTemplateData(templateData);
-      logger.info('Request Url created successfully: ' + link);
       await updateSession(this.sessionId, SessionStatus.SESSION_STARTED);
-      return link;
+      if (this.options?.useAppClip) {
+        let template = encodeURIComponent(JSON.stringify(templateData));
+        template = replaceAll(template, '(', '%28');
+        template = replaceAll(template, ')', '%29');
+
+        // check if the device is running on iOS or Android
+        const isIos = Platform.OS === 'ios';
+        if (!isIos) {
+          const instantAppUrl = `https://share.reclaimprotocol.org/verify/?template=${template}`;
+          logger.info('Instant App Url created successfully: ' + instantAppUrl);
+          return instantAppUrl;
+        } else {
+          const appClipUrl = `https://appclip.apple.com/id?p=org.reclaimprotocol.app.clip&template=${template}`;
+          logger.info('App Clip Url created successfully: ' + appClipUrl);
+          return appClipUrl;
+        }
+      } else {
+        const link = await createLinkWithTemplateData(templateData);
+        logger.info('Request Url created successfully: ' + link);
+        return link;
+      }
     } catch (error) {
       logger.info('Error creating Request Url:', error);
       throw error;

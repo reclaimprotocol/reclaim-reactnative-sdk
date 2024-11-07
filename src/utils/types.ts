@@ -44,6 +44,7 @@ export type OnError = (error: Error) => void;
 export type ProofRequestOptions = {
   log?: boolean;
   acceptAiProviders?: boolean;
+  useAppClip?: boolean;
 };
 
 // Session and response types

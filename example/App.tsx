@@ -109,7 +109,7 @@ export default function App() {
         'YOUR_APP_ID', // your app ID
         'YOUR_APP_SECRET', // your app secret key
         'YOUR_PROVIDER_ID', // your provider ID
-        // { log: true, acceptAiProviders: true } // options
+        // { log: true, acceptAiProviders: true, useAppClip: true } // options
       );
       setReclaimProofRequest(proofRequest);
 
