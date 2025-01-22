@@ -38,7 +38,7 @@ export type StartSessionParams = {
   onError: OnError;
 };
 
-export type OnSuccess = (proof: Proof | string) => void;
+export type OnSuccess = (proof: Proof | Proof[] | string) => void;
 export type OnError = (error: Error) => void;
 
 export type ProofRequestOptions = {
