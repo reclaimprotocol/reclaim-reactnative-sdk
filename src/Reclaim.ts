@@ -60,7 +60,22 @@ import { Platform } from 'react-native';
 const logger = loggerModule.logger;
 const sdkVersionNumber = require('../package.json').version;
 
-export async function verifyProof(proof: Proof): Promise<boolean> {
+export async function verifyProof(
+  proofOrProofs: Proof | Proof[]
+): Promise<boolean> {
+  // If input is an array of proofs
+  if (Array.isArray(proofOrProofs)) {
+    for (const proof of proofOrProofs) {
+      const isVerified = await verifyProof(proof);
+      if (!isVerified) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  const proof = proofOrProofs;
+
   if (!proof.signatures.length) {
     throw new SignatureNotFoundError('No signatures');
   }
@@ -151,6 +166,8 @@ export class ReclaimProofRequest {
   private intervals: Map<string, NodeJS.Timer> = new Map();
   private timeStamp: string;
   private sdkVersion: string;
+  private lastFailureTime?: number;
+  private readonly FAILURE_TIMEOUT = 30000;
 
   // Private constructor
   private constructor(
@@ -595,11 +612,31 @@ export class ReclaimProofRequest {
         const statusUrlResponse = await fetchStatusUrl(this.sessionId);
 
         if (!statusUrlResponse.session) return;
+        // Reset failure time if status is not PROOF_GENERATION_FAILED
+        if (
+          statusUrlResponse.session.statusV2 !==
+          SessionStatus.PROOF_GENERATION_FAILED
+        ) {
+          this.lastFailureTime = undefined;
+        }
+
+        // Check for failure timeout
         if (
           statusUrlResponse.session.statusV2 ===
           SessionStatus.PROOF_GENERATION_FAILED
         ) {
-          throw new ProviderFailedError();
+          const currentTime = Date.now();
+          if (!this.lastFailureTime) {
+            this.lastFailureTime = currentTime;
+          } else if (
+            currentTime - this.lastFailureTime >=
+            this.FAILURE_TIMEOUT
+          ) {
+            throw new ProviderFailedError(
+              'Proof generation failed - timeout reached'
+            );
+          }
+          return; // Continue monitoring if under timeout
         }
 
         const isDefaultCallbackUrl =
@@ -614,14 +651,18 @@ export class ReclaimProofRequest {
             if (!statusUrlResponse.session.proofs[0]) {
               throw new ProofNotFoundError();
             }
-            const proof = statusUrlResponse.session.proofs[0];
-            const verified = await verifyProof(proof);
+            const proofs = statusUrlResponse.session.proofs;
+            const verified = await verifyProof(proofs);
             if (!verified) {
-              logger.info(`Proof not verified: ${JSON.stringify(proof)}`);
+              logger.info(`Proofs not verified: ${JSON.stringify(proofs)}`);
               throw new ProofNotVerifiedError();
             }
             if (onSuccess) {
-              onSuccess(proof);
+              if (proofs.length === 1) {
+                onSuccess(proofs[0] as Proof);
+              } else {
+                onSuccess(proofs as Proof[]);
+              }
             }
             this.clearInterval();
           }
