@@ -166,6 +166,8 @@ export class ReclaimProofRequest {
   private intervals: Map<string, NodeJS.Timer> = new Map();
   private timeStamp: string;
   private sdkVersion: string;
+  private lastFailureTime?: number;
+  private readonly FAILURE_TIMEOUT = 30000;
 
   // Private constructor
   private constructor(
@@ -610,11 +612,31 @@ export class ReclaimProofRequest {
         const statusUrlResponse = await fetchStatusUrl(this.sessionId);
 
         if (!statusUrlResponse.session) return;
+        // Reset failure time if status is not PROOF_GENERATION_FAILED
+        if (
+          statusUrlResponse.session.statusV2 !==
+          SessionStatus.PROOF_GENERATION_FAILED
+        ) {
+          this.lastFailureTime = undefined;
+        }
+
+        // Check for failure timeout
         if (
           statusUrlResponse.session.statusV2 ===
           SessionStatus.PROOF_GENERATION_FAILED
         ) {
-          throw new ProviderFailedError();
+          const currentTime = Date.now();
+          if (!this.lastFailureTime) {
+            this.lastFailureTime = currentTime;
+          } else if (
+            currentTime - this.lastFailureTime >=
+            this.FAILURE_TIMEOUT
+          ) {
+            throw new ProviderFailedError(
+              'Proof generation failed - timeout reached'
+            );
+          }
+          return; // Continue monitoring if under timeout
         }
 
         const isDefaultCallbackUrl =
