@@ -32,7 +32,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "16"
-          registry-url: "http://registry.npmjs.org"
+          registry-url: "https://registry.npmmirror.com/"
 
       - name: Clean install dependencies
         run: |
@@ -64,7 +64,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "16"
-          registry-url: "http://registry.npmjs.org"
+          registry-url: "https://registry.npmmirror.com/"
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
