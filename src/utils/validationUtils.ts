@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { InvalidParamError, InvalidSignatureError } from './errors';
 import canonicalize from 'canonicalize';
-import type { Context, RequestedProof } from './interfaces';
+import type { Context } from './interfaces';
 import loggerModule from './logger';
 import type { ProofRequestOptions } from './types';
 const logger = loggerModule.logger;
@@ -42,6 +42,42 @@ export function validateFunctionParams(
       );
     }
   });
+}
+
+/**
+ * Validates the parameters object
+ * @param parameters - The parameters object to validate
+ * @throws InavlidParametersError if the parameters object is not valid
+ */
+export function validateParameters(parameters: {
+  [key: string]: string;
+}): void {
+  try {
+    // check if the parameters is an object of key value pairs of string and string
+    if (typeof parameters !== 'object' || parameters === null) {
+      logger.info(
+        `Parameters validation failed: Provided parameters is not an object`
+      );
+      throw new InvalidParamError(`The provided parameters is not an object`);
+    }
+    // check each key and value in the parameters object
+    for (const [key, value] of Object.entries(parameters)) {
+      if (typeof key !== 'string' || typeof value !== 'string') {
+        logger.info(
+          `Parameters validation failed: Provided parameters is not an object of key value pairs of string and string`
+        );
+        throw new InvalidParamError(
+          `The provided parameters is not an object of key value pairs of string and string`
+        );
+      }
+    }
+  } catch (e) {
+    logger.info(`Parameters validation failed: ${(e as Error).message}`);
+    throw new InvalidParamError(
+      `Invalid parameters passed to validateParameters.`,
+      e as Error
+    );
+  }
 }
 
 /**
@@ -121,34 +157,6 @@ export function validateSignature(
     }
     throw new InvalidSignatureError(
       `Failed to validate signature: ${(err as Error).message}`
-    );
-  }
-}
-
-/**
- * Validates the requested proof object
- * @param requestedProof - The requested proof object to validate
- * @throws InvalidParamError if the requested proof object is not valid
- */
-export function validateRequestedProof(requestedProof: RequestedProof): void {
-  if (!requestedProof.url) {
-    logger.info(
-      `Requested proof validation failed: Provided url in requested proof is not valid`
-    );
-    throw new InvalidParamError(
-      `The provided url in requested proof is not valid`
-    );
-  }
-
-  if (
-    requestedProof.parameters &&
-    typeof requestedProof.parameters !== 'object'
-  ) {
-    logger.info(
-      `Requested proof validation failed: Provided parameters in requested proof is not valid`
-    );
-    throw new InvalidParamError(
-      `The provided parameters in requested proof is not valid`
     );
   }
 }

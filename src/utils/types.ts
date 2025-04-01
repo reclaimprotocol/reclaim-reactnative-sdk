@@ -1,10 +1,4 @@
-import type {
-  Context,
-  Proof,
-  ProviderClaimData,
-  ProviderData,
-  RequestedProof,
-} from './interfaces';
+import type { Context, Proof, ProviderClaimData } from './interfaces';
 
 // Claim-related types
 export type ClaimID = ProviderClaimData['identifier'];
@@ -50,7 +44,6 @@ export type ProofRequestOptions = {
 // Session and response types
 export type InitSessionResponse = {
   sessionId: string;
-  provider: ProviderData;
 };
 
 export interface UpdateSessionResponse {
@@ -77,7 +70,7 @@ export type ProofPropertiesJSON = {
   providerId: string;
   sessionId: string;
   context: Context;
-  requestedProof: RequestedProof;
+  parameters: { [key: string]: string };
   signature: string;
   redirectUrl?: string;
   timeStamp: string;

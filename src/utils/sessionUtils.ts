@@ -28,7 +28,7 @@ export async function initSession(
     `Initializing session for providerId: ${providerId}, appId: ${appId}`
   );
   try {
-    const response = await fetch(`${BACKEND_BASE_URL}/api/sdk/init-session/`, {
+    const response = await fetch(`${BACKEND_BASE_URL}/api/sdk/init/session/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ providerId, appId, timestamp, signature }),

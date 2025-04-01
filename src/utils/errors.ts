@@ -16,9 +16,7 @@ export const SessionNotStartedError = createErrorClass(
   'SessionNotStartedError'
 );
 export const ProviderNotFoundError = createErrorClass('ProviderNotFoundError');
-export const BuildProofRequestError = createErrorClass(
-  'BuildProofRequestError'
-);
+
 export const SignatureGeneratingError = createErrorClass(
   'SignatureGeneratingError'
 );
@@ -32,10 +30,8 @@ export const ProviderFailedError = createErrorClass('ProviderFailedError');
 export const InvalidParamError = createErrorClass('InvalidParamError');
 export const ApplicationError = createErrorClass('ApplicationError');
 export const InitError = createErrorClass('InitError');
-export const AvailableParamsError = createErrorClass('AvailableParamsError');
 export const BackendServerError = createErrorClass('BackendServerError');
 export const GetStatusUrlError = createErrorClass('GetStatusUrlError');
-export const NoProviderParamsError = createErrorClass('NoProviderParamsError');
 export const SetParamsError = createErrorClass('SetParamsError');
 export const AddContextError = createErrorClass('AddContextError');
 export const SetSignatureError = createErrorClass('SetSignatureError');

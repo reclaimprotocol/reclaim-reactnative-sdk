@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import type { ProviderData, RequestedProof, WitnessData } from './interfaces';
+import type { WitnessData } from './interfaces';
 import type { SignedClaim, TemplateData } from './types';
 import { createSignDataForClaim, fetchWitnessListForClaim } from '../witness';
 import { BACKEND_BASE_URL, constants } from './constants';
@@ -9,45 +9,6 @@ import { makeBeacon } from '../smart-contract';
 import { ProofNotVerifiedError } from './errors';
 import loggerModule from './logger';
 const logger = loggerModule.logger;
-
-/**
- * Generates the requested proof for a given provider
- * @param provider - The provider details
- * @returns RequestedProof object containing the generated proof request
- */
-export function generateRequestedProof(provider: ProviderData): RequestedProof {
-  const providerParams: { [key: string]: string } = {};
-  provider.responseSelections.forEach((rs) =>
-    rs.responseMatch
-      .split(/{{(.*?)}}/)
-      .filter((_, i) => i % 2)
-      .forEach((param) => (providerParams[param] = ''))
-  );
-  const proof: RequestedProof = {
-    url: provider.url,
-    parameters: providerParams,
-  };
-
-  return proof;
-}
-
-/**
- * Retrieves the parameters that have been filled with values from the requested proof
- * @param requestedProof - The requested proof object
- * @returns An object containing the parameters that have been filled with values
- */
-export function getFilledParameters(requestedProof: RequestedProof): {
-  [key: string]: string;
-} {
-  return Object.keys(requestedProof.parameters).reduce<{
-    [key: string]: string;
-  }>((acc, param) => {
-    if (requestedProof.parameters[param]) {
-      acc[param] = requestedProof.parameters[param] as string;
-    }
-    return acc;
-  }, {});
-}
 
 /**
  * Retrieves a shortened URL for the given URL
