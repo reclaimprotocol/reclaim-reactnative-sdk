@@ -1,6 +1,6 @@
 {
   "name": "@reclaimprotocol/reactnative-sdk",
-  "version": "2.2.1",
+  "version": "3.0.0",
   "description": "Designed to request proofs from the Reclaim protocol and manage the flow of claims.",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",
