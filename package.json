@@ -43,15 +43,15 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git@gitlab.reclaimprotocol.org:reclaim-developer-experience/reclaim-sdk.git",
+    "url": "git@github.com:reclaimprotocol/reclaim-reactnative-sdk.git",
     "directory": "packages/reactnative"
   },
   "author": "ali <ali@creatoros.co> (https://gitlab.reclaimprotocol.org/ali)",
   "license": "MIT",
   "bugs": {
-    "url": "https://gitlab.reclaimprotocol.org/reclaim-developer-experience/reclaim-sdk/-/issues"
+    "url": "https://github.com/reclaimprotocol/reclaim-reactnative-sdk/issues"
   },
-  "homepage": "https://gitlab.reclaimprotocol.org/reclaim-developer-experience/reclaim-sdk/-/blob/main/packages/reactnative/README.md?ref_type=heads",
+  "homepage": "https://docs.reclaimprotocol.org/react-native",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
