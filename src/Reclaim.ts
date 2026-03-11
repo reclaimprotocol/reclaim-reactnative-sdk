@@ -578,7 +578,7 @@ export class ReclaimProofRequest {
             const proofs = statusUrlResponse.session.proofs;
             const verified = await verifyProof(proofs);
             if (!verified) {
-              logger.info(`Proofs not verified: ${JSON.stringify(proofs)}`);
+              logger.info(`Proofs not verified: count=${proofs.length}`);
               throw new ProofNotVerifiedError();
             }
             if (onSuccess) {
